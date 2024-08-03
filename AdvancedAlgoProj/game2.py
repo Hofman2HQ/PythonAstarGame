@@ -348,17 +348,57 @@ def play_game():
         draw(mode)
         pygame.time.Clock().tick(2)
 
+    # Display the result in a pop-up window
     if winner:
-        print(f"{winner} wins!")
+        message = f"{winner} wins!"
     elif turn >= max_turns:
-        print("Game ended in a draw (max turns reached)")
+        message = "Game ended in a draw (max turns reached)"
     else:
-        print("Game ended without a winner")
-
+        message = "Game ended without a winner"
+        
+    display_popup(message)
     save_game_data(player1, player2, logs, winner)
 
     return winner
 
+def display_popup(message):
+    font = pygame.font.Font(None, 36)
+    text = font.render(message, True, (255, 255, 255))
+    text_rect = text.get_rect(center=(400, 250))
+
+    button_font = pygame.font.Font(None, 24)
+    button_text = button_font.render('Exit to Main Menu', True, (255, 255, 255))
+    button_rect = button_text.get_rect(center=(400, 350))
+    button_color = (0, 128, 0)
+    button_hover_color = (0, 255, 0)
+
+    popup_running = True
+    while popup_running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                popup_running = False
+                return False
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if button_rect.collidepoint(event.pos):
+                    popup_running = False
+
+        mouse_pos = pygame.mouse.get_pos()
+        if button_rect.collidepoint(mouse_pos):
+            current_button_color = button_hover_color
+        else:
+            current_button_color = button_color
+
+        screen.fill((0, 0, 0))
+        screen.blit(text, text_rect)
+
+        pygame.draw.rect(screen, current_button_color, button_rect.inflate(20, 10))
+        screen.blit(button_text, button_rect)
+
+        pygame.display.flip()
+        pygame.time.Clock().tick(30)
+
+    return True
+        
 def save_game_data(player1, player2, logs, winner):
     game_data = {
         'player1': {'x': player1.x, 'y': player1.y, 'logs': player1.logs},
@@ -490,7 +530,7 @@ def main_menu():
                 elif event.key == pygame.K_DOWN:
                     num_games = max(1, num_games - 1)
                 num_games_text = menu_font.render(f"Number of Games: {num_games}", True, BLACK)
-                num_games_rect = num_games_text.get_rect(center=(WIDTH // 2, HEIGHT // 2))
+                num_games_rect = num_games_text.get_rect()
 
 def main():
     player1_data, player2_data = load_training_data()
