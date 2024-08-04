@@ -31,7 +31,7 @@ TEXT_COLOR = (255, 255, 255)
 ARROW_COLOR = (50, 50, 50)
 
 # Set up the display
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
+screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN)
 pygame.display.set_caption("Maze Game")
 font = pygame.font.Font(pygame.font.get_default_font(), 24)
 menu_font = pygame.font.Font(pygame.font.get_default_font(), 48)
@@ -65,21 +65,22 @@ player2_img = player2_images[1]
 
 class Player:
     def __init__(self, x, y, image, goal):
-        self.x = x
-        self.y = y
-        self.image = image
-        self.logs = 5
-        self.goal = goal
-        self.path = []
-        self.model = MLPRegressor(hidden_layer_sizes=(50, 50), max_iter=1000, random_state=42)
-        self.train_data = []
-        self.train_model()
-        self.logs_placed = 0
-        self.moves_left = 5
-        self.has_jumped = False
+        self.x = x  # X coordinate
+        self.y = y  # Y coordinate
+        self.image = image  # Player image
+        self.logs = 5  # Number of logs player can place
+        self.goal = goal  # Goal position
+        self.path = []  # Path to follow
+        self.model = MLPRegressor(hidden_layer_sizes=(50, 50), max_iter=1000, random_state=42)  # Machine learning model
+        self.train_data = []  # Training data for the model
+        self.train_model()  # Train the model with initial data
+        self.logs_placed = 0  # Number of logs placed
+        self.moves_left = 5  # Moves left in the current turn
+        self.has_jumped = False  # Flag to check if player has jumped
 
     def move(self):
-        if len(self.path) > 1 and self.moves_left > 0:
+        # Move player to the next position in the path
+        if self.path is not None and len(self.path) > 1 and self.moves_left > 0:
             next_x, next_y = self.path[1]
             if abs(next_x - self.x) + abs(next_y - self.y) > 1:
                 self.has_jumped = True
@@ -88,9 +89,11 @@ class Player:
             self.moves_left -= 1
 
     def draw(self):
+        # Draw the player on the screen
         screen.blit(self.image, (self.x * CELL_SIZE, self.y * CELL_SIZE))
 
     def train_model(self):
+        # Train the machine learning model
         if len(self.train_data) > 100:
             X, y = zip(*self.train_data)
             self.model.fit(X, y)
@@ -100,10 +103,12 @@ class Player:
             self.model.fit(X, y)
 
     def load_training_data(self, data):
+        # Load training data for the model
         self.train_data.extend(data)
         self.train_model()
 
     def decide_action(self, opponent, logs):
+        # Decide the next action for the player
         my_distance = abs(self.x - self.goal[0]) + abs(self.y - self.goal[1])
         opponent_distance = abs(opponent.x - opponent.goal[0]) + abs(opponent.y - opponent.goal[1])
         X = np.array([[self.x, self.y, opponent.x, opponent.y, self.logs, my_distance, opponent_distance]])
@@ -124,11 +129,12 @@ class Player:
 
 class Log:
     def __init__(self, x, y, horizontal):
-        self.x = x
-        self.y = y
-        self.horizontal = horizontal
+        self.x = x  # X coordinate
+        self.y = y  # Y coordinate
+        self.horizontal = horizontal  # Orientation of the log
 
     def draw(self):
+        # Draw the log on the screen
         if self.horizontal:
             pygame.draw.rect(screen, BROWN,
                              (self.x * CELL_SIZE, self.y * CELL_SIZE + CELL_SIZE // 4, CELL_SIZE * 2, CELL_SIZE // 2))
@@ -138,6 +144,7 @@ class Log:
 
 
 def initialize_players():
+    # Initialize players and logs
     global player1, player2, logs
     player1 = Player(0, 0, player1_img, (GRID_SIZE - 1, GRID_SIZE - 1))
     player2 = Player(GRID_SIZE - 1, GRID_SIZE - 1, player2_img, (0, 0))
@@ -151,6 +158,7 @@ def initialize_players():
 
 
 def draw_grid():
+    # Draw the grid on the screen
     for x in range(0, GRID_SIZE * CELL_SIZE, CELL_SIZE):
         pygame.draw.line(screen, DARK_GREY, (x, 0), (x, GRID_SIZE * CELL_SIZE))
     for y in range(0, GRID_SIZE * CELL_SIZE, CELL_SIZE):
@@ -158,6 +166,7 @@ def draw_grid():
 
 
 def draw(mode):
+    # Draw the game elements on the screen
     screen.fill(BACKGROUND_COLOR)
     draw_grid()
     for log in logs:
@@ -195,10 +204,12 @@ def draw(mode):
 
 
 def heuristic(a, b):
+    # Heuristic function for A* algorithm
     return abs(b[0] - a[0]) + abs(b[1] - a[1])
 
 
 def get_neighbors(x, y, current_logs, can_hop, has_jumped):
+    # Get the neighboring cells for A* algorithm
     neighbors = []
     for dx, dy in [(0, 1), (1, 0), (0, -1), (-1, 0)]:
         new_x, new_y = x + dx, y + dy
@@ -216,6 +227,7 @@ def get_neighbors(x, y, current_logs, can_hop, has_jumped):
 
 
 def a_star(start, goal, current_logs, can_hop, has_jumped):
+    # A* pathfinding algorithm
     frontier = PriorityQueue()
     frontier.put((0, start))
     came_from = {start: None}
@@ -244,6 +256,7 @@ def a_star(start, goal, current_logs, can_hop, has_jumped):
 
 
 def logs_overlap(new_log, existing_logs):
+    # Check if a new log overlaps with existing logs
     for log in existing_logs:
         if new_log.horizontal == log.horizontal:
             if new_log.horizontal:
@@ -259,12 +272,13 @@ def logs_overlap(new_log, existing_logs):
                     return True
             else:
                 if (new_log.x <= log.x < new_log.x + 1 or new_log.x <= log.x + 1 < new_log.x + 1) and \
-                   (log.y <= new_log.y < log.y + 1 or log.y <= new_log.y + 1 < log.y + 1):
+                   (log.y <= new_log.y < log.y + 1 or log.y <= new_log.y + 1 < new_log.y + 1):
                     return True
     return False
 
 
 def place_log(player, opponent):
+    # Place a log on the grid
     if player.logs > 0:
         for _ in range(50):
             horizontal = random.choice([True, False])
@@ -296,6 +310,7 @@ def place_log(player, opponent):
 
 
 def player_turn(player, opponent, mode):
+    # Execute the player's turn
     if mode == 'place_log':
         if player.logs_placed < 5:
             if place_log(player, opponent):
@@ -303,19 +318,26 @@ def player_turn(player, opponent, mode):
     elif mode == 'move':
         if player.moves_left > 0:
             player.path = a_star((player.x, player.y), player.goal, logs, True, player.has_jumped)
-            player.move()
+            if player.path:  # Check if path exists
+                player.move()
+            else:
+                # If no path found, the player might be stuck
+                player.has_jumped = False  # Reset the jump flag
 
 
 def check_win_condition(player):
+    # Check if the player has reached the goal
     return (player.x, player.y) == player.goal
 
 
 def clear_logs():
+    # Clear the logs from the grid
     global logs
     logs = []
 
 
 def play_game():
+    # Main game loop
     turn = 0
     mode = 'place_log'
     running = True
@@ -372,6 +394,7 @@ def play_game():
 
 
 def save_game_data(player1, player2, logs, winner):
+    # Save game data to a JSON file
     game_data = {
         'player1': {'x': player1.x, 'y': player1.y, 'logs': player1.logs},
         'player2': {'x': player2.x, 'y': player2.y, 'logs': player2.logs},
@@ -395,6 +418,7 @@ def save_game_data(player1, player2, logs, winner):
 
 
 def load_training_data():
+    # Load training data from a JSON file
     try:
         with open('game_data.json', 'r') as file:
             data = json.load(file)
@@ -412,6 +436,7 @@ def load_training_data():
 
 
 def draw_button(text, rect, is_hovered=False):
+    # Draw a button on the screen
     color = BUTTON_HOVER_COLOR if is_hovered else BUTTON_COLOR
     pygame.draw.rect(screen, color, rect, border_radius=10)
     pygame.draw.rect(screen, BLACK, rect, 2, border_radius=10)
@@ -421,12 +446,14 @@ def draw_button(text, rect, is_hovered=False):
 
 
 def draw_text(text, position, font, color=BLACK):
+    # Draw text on the screen
     text_surface = font.render(text, True, color)
     text_rect = text_surface.get_rect(center=position)
     screen.blit(text_surface, text_rect)
 
 
 def draw_arrows(num_games_rect):
+    # Draw arrows for adjusting the number of games
     left_arrow = arrow_font.render("<", True, ARROW_COLOR)
     right_arrow = arrow_font.render(">", True, ARROW_COLOR)
     left_rect = left_arrow.get_rect(midright=(num_games_rect.left - 10, num_games_rect.centery))
@@ -437,6 +464,7 @@ def draw_arrows(num_games_rect):
 
 
 def choose_player_images():
+    # Allow the user to choose player images
     global player1_img, player2_img
     chosen1 = False
     chosen2 = False
@@ -473,6 +501,7 @@ def choose_player_images():
 
 
 def main_menu():
+    # Display the main menu
     start_text = menu_font.render("Maze Game", True, BLACK)
     start_rect = pygame.Rect((WIDTH // 2 - 150, HEIGHT // 2 - 100, 300, 50))
     choose_rect = pygame.Rect((WIDTH // 2 - 150, HEIGHT // 2 + 50, 300, 50))
@@ -528,11 +557,8 @@ def main_menu():
 
 
 def main():
+    # Main function
     player1_data, player2_data = load_training_data()
-    initialize_players()
-    player1.load_training_data(player1_data)
-    player2.load_training_data(player2_data)
-
     while True:
         action, num_games = main_menu()
 
@@ -546,6 +572,8 @@ def main():
         for game in range(num_games):
             print(f"Starting Game {game + 1}")
             initialize_players()
+            player1.load_training_data(player1_data)
+            player2.load_training_data(player2_data)
             winner = play_game()
             if winner == "Player 1":
                 player1_wins += 1
