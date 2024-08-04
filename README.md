@@ -26,10 +26,6 @@
 - numpy
 
 ## התקנה
-1. שכפול המאגר:
-   ```bash
-   git clone <repository_url>
-   cd <repository_directory>
 
 
 התקנת החבילות הנדרשות:
